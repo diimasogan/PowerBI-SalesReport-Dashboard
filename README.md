@@ -2,6 +2,8 @@
 
 **Live demo:** https://diimasogan.github.io/PowerBI-SalesReport-Dashboard/
 
+**Documentation:** [English](https://diimasogan.github.io/PowerBI-SalesReport-Dashboard/docs/SalesReport-Documentation.html) · [Bahasa Indonesia](https://diimasogan.github.io/PowerBI-SalesReport-Dashboard/docs/id/SalesReport-Dokumentasi.html)
+
 An interactive property sales report, originally built in Power BI and rebuilt as a static web page so it can be explored without a Power BI licence.
 
 ## Features
