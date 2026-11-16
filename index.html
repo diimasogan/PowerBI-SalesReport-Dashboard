@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sales Report Dashboard — Dimas Agung Prakasa</title>
+<meta name="description" content="Interactive web replica of a Power BI sales report: net sales by region, SBU and product type, cancellation trends, summary and detail tables. Data anonymized.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%2313A89E'/%3E%3Ctext x='32' y='42' font-family='Arial' font-weight='700' font-size='26' fill='white' text-anchor='middle'%3EDP%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script>try{var t=localStorage.getItem("landing-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+<style>
+:root{
+  --bg:#F5F7FB; --surface:#FFFFFF; --surface-2:#F0F4F9; --ink:#0D1B2E; --muted:#58677C; --line:#DCE4EE; --grid:#E8EDF3;
+  --brand:#13A89E; --brand-ink:#0B7F77; --brand-soft:rgba(19,168,158,.12); --hero-a:#0B1B33;
+  --s1:#13A89E; --s2:#eb6834; --s3:#2a78d6; --s4:#eda100; --s5:#6250d6;
+  --shadow:0 1px 2px rgba(13,27,46,.05),0 10px 30px -12px rgba(13,27,46,.18); color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#070F1C; --surface:#0F1D31; --surface-2:#14253D; --ink:#E8EEF6; --muted:#9AAABD; --line:#1F3350; --grid:#182A44;
+  --brand:#17a294; --brand-ink:#5ED8CD; --brand-soft:rgba(47,196,184,.14);
+  --s1:#17a294; --s2:#d95926; --s3:#3987e5; --s4:#c98500; --s5:#9085e9;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px -12px rgba(0,0,0,.6); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#070F1C; --surface:#0F1D31; --surface-2:#14253D; --ink:#E8EEF6; --muted:#9AAABD; --line:#1F3350; --grid:#182A44;
+  --brand:#17a294; --brand-ink:#5ED8CD; --brand-soft:rgba(47,196,184,.14);
+  --s1:#17a294; --s2:#d95926; --s3:#3987e5; --s4:#c98500; --s5:#9085e9;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px -12px rgba(0,0,0,.6); color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1280px;margin:0 auto;padding:0 16px}
+.bar{position:sticky;top:0;z-index:1000;background:color-mix(in srgb,var(--hero-a) 88%,transparent);backdrop-filter:blur(12px);color:#fff;border-bottom:1px solid rgba(255,255,255,.08)}
+.bar .wrap{display:flex;align-items:center;gap:12px;height:56px}
+.back{color:#C8D4E3;text-decoration:none;font-weight:600;font-size:14px;white-space:nowrap}
+.back:hover{color:#fff}
+.bar h1{margin:0;font-size:16px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar .sp{margin-left:auto}
+.ibtn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);color:#fff;border-radius:999px;height:34px;min-width:34px;padding:0 10px;display:grid;place-items:center;cursor:pointer;font:700 12px/1 inherit}
+.ibtn:hover{background:rgba(255,255,255,.16)}
+.ibtn svg{width:16px;height:16px}
+.head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px;margin:22px 0 14px}
+.head h2{margin:0;font-size:26px;letter-spacing:-.01em}
+.head p{margin:2px 0 0;color:var(--muted);font-size:14px}
+.note{display:inline-flex;align-items:center;gap:8px;background:var(--brand-soft);color:var(--brand-ink);border-radius:999px;padding:5px 12px;font-size:13px;font-weight:700}
+.filters{position:sticky;top:56px;z-index:900;background:var(--bg);padding:10px 0;display:flex;flex-wrap:wrap;gap:8px;align-items:end;border-bottom:1px solid var(--line)}
+.f{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 140px}
+.f label{font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+select,input[type=search]{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;height:36px;padding:0 10px;width:100%;min-width:0}
+select:focus,input:focus,button:focus-visible{outline:2px solid var(--brand);outline-offset:1px}
+.f.yr{flex:0 1 190px}.f.yr div{display:flex;gap:6px;align-items:center}
+.reset{font:inherit;font-weight:700;font-size:14px;height:36px;padding:0 14px;border-radius:10px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);cursor:pointer}
+.reset:hover{border-color:var(--brand);color:var(--brand-ink)}
+.tabs{display:flex;gap:6px;margin:16px 0 12px}
+.tab{font:inherit;font-weight:700;font-size:14px;padding:8px 16px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--muted);cursor:pointer}
+.tab[aria-selected=true]{background:var(--brand);border-color:var(--brand);color:#fff}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 16px;box-shadow:var(--shadow)}
+.kpi span{display:block;font-size:12.5px;font-weight:700;color:var(--muted)}
+.kpi b{display:block;font-size:26px;letter-spacing:-.02em;font-variant-numeric:tabular-nums;margin-top:2px}
+.kpi em{font-style:normal;font-size:12.5px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:12px;margin-bottom:24px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 16px;box-shadow:var(--shadow);min-width:0}
+.card h3{margin:0;font-size:15px}
+.card .hint{margin:0 0 6px;font-size:12.5px;color:var(--muted)}
+.c7{grid-column:span 7}.c5{grid-column:span 5}.c6{grid-column:span 6}.c12{grid-column:span 12}
+.ch{height:300px;width:100%}
+.legend{display:flex;flex-wrap:wrap;gap:4px 16px;margin:4px 0 2px;font-size:12.5px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:14px;height:3px;border-radius:2px;display:inline-block}
+#map{height:360px;border-radius:12px;z-index:0;background:var(--surface-2)}
+.leaflet-container{font:inherit}
+.leaflet-tile-pane{filter:saturate(.35)}
+:root[data-theme="dark"] .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.8) saturate(.3)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.8) saturate(.3)}}
+.leaflet-tooltip{font-size:13px}
+table{width:100%;border-collapse:collapse;font-size:13.5px;font-variant-numeric:tabular-nums}
+th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;white-space:nowrap}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);position:sticky;top:0;background:var(--surface)}
+th.n,td.n{text-align:right}
+th.s{cursor:pointer}th.s:hover{color:var(--ink)}
+tr.prov td{font-weight:700;cursor:pointer}
+tr.prov td:first-child::before{content:"▸";display:inline-block;width:16px;color:var(--muted)}
+tr.prov.open td:first-child::before{content:"▾"}
+tr.city td:first-child{padding-left:34px;color:var(--muted)}
+tr.tot td{font-weight:800;border-top:2px solid var(--line)}
+.tbl{overflow:auto;max-height:620px}
+.pager{display:flex;align-items:center;gap:8px;justify-content:flex-end;margin-top:10px;font-size:13px;color:var(--muted)}
+.pager button{font:inherit;font-weight:700;padding:6px 12px;border-radius:8px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);cursor:pointer}
+.pager button:disabled{opacity:.4;cursor:default}
+.dtool{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap}
+.dtool input{max-width:320px}
+footer{color:var(--muted);font-size:13px;padding:10px 0 40px}
+footer a{color:var(--brand-ink)}
+.loading{padding:60px 0;text-align:center;color:var(--muted)}
+@media (max-width:900px){.c7,.c5,.c6{grid-column:span 12}.kpis{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:600px){.back span{display:none}.filters{position:static}.kpi b{font-size:21px}.head h2{font-size:21px}}
+</style>
+</head>
+<body>
+<header class="bar"><div class="wrap">
+  <a class="back" href="https://diimasogan.github.io/#projects">← <span>Portfolio</span></a>
+  <h1>Sales Report Dashboard</h1>
+  <span class="sp"></span>
+  <button class="ibtn" id="theme" type="button" aria-label="Toggle dark mode" title="Toggle theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+</div></header>
+
+<main class="wrap">
+  <div class="head">
+    <div>
+      <h2>Property Sales Performance</h2>
+      <p>Web replica of a Power BI report · data cut-off <b id="asof">—</b></p>
+    </div>
+    <span class="note">● Anonymized data — names and amounts are not real</span>
+  </div>
+
+  <div class="filters" role="group" aria-label="Report filters">
+    <div class="f"><label for="fProvince">Province</label><select id="fProvince"></select></div>
+    <div class="f"><label for="fCity">City</label><select id="fCity"></select></div>
+    <div class="f"><label for="fSbu">SBU</label><select id="fSbu"></select></div>
+    <div class="f"><label for="fDiv">Division</label><select id="fDiv"></select></div>
+    <div class="f"><label for="fCluster">Cluster</label><select id="fCluster"></select></div>
+    <div class="f"><label for="fType">Product type</label><select id="fType"></select></div>
+    <div class="f yr"><label for="fY0">SO first date (year)</label><div><select id="fY0" aria-label="From year"></select>–<select id="fY1" aria-label="To year"></select></div></div>
+    <button class="reset" id="reset" type="button">Reset</button>
+  </div>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" aria-selected="true" data-tab="overview">Overview</button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="summary">Summary</button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="detail">Detail</button>
+  </div>
+
+  <div id="loading" class="loading">Loading data…</div>
+
+  <section id="overview" hidden>
+    <div class="kpis">
+      <div class="kpi"><span>Net sales (excl. VAT)</span><b id="kNet">—</b><em id="kNetSub"></em></div>
+      <div class="kpi"><span>Net sales (incl. VAT)</span><b id="kInc">—</b><em>gross of PPN</em></div>
+      <div class="kpi"><span>Net units sold</span><b id="kUnits">—</b><em>sales minus cancellations</em></div>
+      <div class="kpi"><span>Cancellations</span><b id="kCancel">—</b><em id="kCancelSub"></em></div>
+    </div>
+    <div class="grid">
+      <div class="card c7"><h3>Net sales by city</h3><p class="hint">Bubble size = net sales. Click a bubble to filter.</p><div id="map" role="img" aria-label="Map of net sales by city"></div></div>
+      <div class="card c5"><h3>Net sales by province</h3><p class="hint">Click a bar to filter</p><div class="ch" id="cProv" style="height:360px"></div></div>
+      <div class="card c6"><h3>Top 10 cities by net sales</h3><p class="hint">Click a bar to filter</p><div class="ch" id="cCity"></div></div>
+      <div class="card c6"><h3>Net sales by SBU</h3><p class="hint">Click a bar to filter</p><div class="ch" id="cSbu"></div></div>
+      <div class="card c5"><h3>Net sales by product type</h3><p class="hint">Share of net sales · click a bar to filter</p><div class="ch" id="cType"></div></div>
+      <div class="card c7"><h3>Cancellations by SO month</h3><p class="hint">Cancelled orders per calendar month, by product type</p><div class="legend" id="lCancel"></div><div class="ch" id="cCancel" style="height:280px"></div></div>
+    </div>
+  </section>
+
+  <section id="summary" hidden>
+    <div class="card" style="margin-bottom:24px">
+      <h3>Summary by province and city</h3><p class="hint">Click a province to expand its cities</p>
+      <div class="tbl"><table id="tSum"></table></div>
+    </div>
+  </section>
+
+  <section id="detail" hidden>
+    <div class="card" style="margin-bottom:24px">
+      <div class="dtool"><div><h3>Detail</h3><p class="hint" id="dCount" style="margin:0"></p></div>
+        <input type="search" id="dSearch" placeholder="Search city, company, cluster…" aria-label="Search detail table"></div>
+      <div class="tbl"><table id="tDet"></table></div>
+      <div class="pager"><span id="pInfo"></span><button id="pPrev" type="button">Prev</button><button id="pNext" type="button">Next</button></div>
+    </div>
+  </section>
+
+  <footer>Originally built in Power BI (5 pages: Cover, Overview, Summary, Detail, Drill-through) and rebuilt for the web with ECharts and Leaflet so it can be explored without a Power BI licence. All company, division and cluster names are replaced with generic labels, and amounts are scaled with random noise. · <a href="https://diimasogan.github.io/#projects">Back to portfolio</a></footer>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+(function () {
+"use strict";
+var root = document.documentElement;
+document.getElementById("theme").addEventListener("click", function () {
+  var cur = root.getAttribute("data-theme");
+  var dark = cur ? cur === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  var next = dark ? "light" : "dark";
+  root.setAttribute("data-theme", next);
+  try { localStorage.setItem("landing-theme", next); } catch (e) {}
+});
+
+/* city coordinates (city centres) */
+var GEO = {
+  "Cilegon":[-6.0025,106.0111],"Lebak":[-6.3594,106.2496],"Pandeglang":[-6.3087,106.1067],"Serang":[-6.1201,106.1503],"Tangerang":[-6.1783,106.6319],
+  "Jakarta Pusat":[-6.1865,106.8341],"Jakarta Barat":[-6.1674,106.7637],"Jakarta Timur":[-6.2250,106.9004],"Jakarta Selatan":[-6.2615,106.8106],"Jakarta Utara":[-6.1384,106.8636],
+  "Cirebon":[-6.7320,108.5523],"Bogor":[-6.5971,106.8060],"Sukabumi":[-6.9277,106.9300],"Bekasi":[-6.2383,106.9756],"Bandung":[-6.9175,107.6191],"Depok":[-6.4025,106.7942],
+  "Tegal":[-6.8694,109.1402],"Magelang":[-7.4797,110.2177],"Solo":[-7.5755,110.8243],"Purwokerto":[-7.4245,109.2302],"Pekalongan":[-6.8898,109.6746],"Semarang":[-6.9667,110.4167],
+  "Jember":[-8.1845,113.6681],"Mojokerto":[-7.4726,112.4338],"Malang":[-7.9666,112.6326],"Surabaya":[-7.2575,112.7521],"Kediri":[-7.8480,112.0178],"Madiun":[-7.6298,111.5239],
+  "Samarinda":[-0.5022,117.1536],"Bontang":[0.1333,117.5000],"Sangatta":[0.5050,117.5560],"Balikpapan":[-1.2379,116.8529],"Tenggarong":[-0.4230,116.9850],
+  "Batam":[1.0456,104.0305],"Natuna":[3.9500,108.3800],"Bintan":[1.0619,104.5186],"Tanjung Pinang":[0.9186,104.4554],"Lingga":[-0.2000,104.6000],"Karimun":[1.0500,103.3700],
+  "Tebing Tinggi":[3.3285,99.1625],"Medan":[3.5952,98.6722],"Tanjungbalai":[2.9667,99.8000],"Pematangsiantar":[2.9595,99.0687],"Sibolga":[1.7427,98.7792],"Binjai":[3.6001,98.4854]
+};
+var MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+var P=0,C=1,S=2,D=3,K=4,T=5,CO=6,Y=7,M=8,U=9,NX=10,NI=11,CA=12; /* row layout */
+var DATA, DIMS, ROWS, cityProv = {}, typeSlot = {}, state = {};
+var $ = function (id) { return document.getElementById(id); };
+var css = function (v) { return getComputedStyle(root).getPropertyValue(v).trim(); };
+
+function money(mn) { /* value in IDR millions */
+  var a = Math.abs(mn), s = mn < 0 ? "−" : "";
+  if (a >= 1e6) return s + "Rp " + (a / 1e6).toFixed(a >= 1e7 ? 1 : 2) + "T";
+  if (a >= 1e3) return s + "Rp " + (a / 1e3).toFixed(1) + "B";
+  return s + "Rp " + Math.round(a) + "M";
+}
+var int = function (n) { return Math.round(n).toLocaleString("en-US"); };
+
+fetch("data.json").then(function (r) { return r.json(); }).then(init).catch(function (err) { console.error(err);
+  $("loading").textContent = "Could not load data. " + (err && err.message || "");
+});
+
+function init(d) {
+  DATA = d; DIMS = d.dims; ROWS = d.rows;
+  $("asof").textContent = d.asOf;
+  ROWS.forEach(function (r) { cityProv[r[C]] = r[P]; });
+  /* fixed colour per product type, ranked on the full dataset so filtering never repaints */
+  var tc = DIMS.UnitTypeDesc.map(function () { return 0; });
+  ROWS.forEach(function (r) { tc[r[T]] += r[CA]; });
+  var order = tc.map(function (v, i) { return i; }).sort(function (a, b) { return tc[b] - tc[a]; });
+  order.forEach(function (ti, rank) { typeSlot[ti] = rank < 4 ? rank : 4; });
+
+  var years = ROWS.map(function (r) { return r[Y]; });
+  var y0 = Math.min.apply(null, years), y1 = Math.max.apply(null, years);
+  fillSel("fProvince", DIMS.Province); fillSel("fSbu", DIMS.PillarDesc); fillSel("fDiv", DIMS.DivisionDesc);
+  fillSel("fCluster", DIMS.ClusterDesc); fillSel("fType", DIMS.UnitTypeDesc); fillCities();
+  ["fY0", "fY1"].forEach(function (id, j) {
+    var s = $(id);
+    for (var y = y0; y <= y1; y++) s.add(new Option(y, y));
+    s.value = j ? y1 : y0;
+  });
+  state.yMin = y0; state.yMax = y1;
+  ["fProvince","fCity","fSbu","fDiv","fCluster","fType","fY0","fY1"].forEach(function (id) {
+    $(id).addEventListener("change", function () { if (id === "fProvince") fillCities(); render(); });
+  });
+  $("reset").addEventListener("click", function () {
+    ["fProvince","fCity","fSbu","fDiv","fCluster","fType"].forEach(function (id) { $(id).value = ""; });
+    $("fY0").value = y0; $("fY1").value = y1; fillCities(); render();
+  });
+  document.querySelectorAll(".tab").forEach(function (b) {
+    b.addEventListener("click", function () { showTab(b.dataset.tab); history.replaceState(null, "", "#" + b.dataset.tab); });
+  });
+  $("dSearch").addEventListener("input", function () { detPage = 0; renderDetail(); });
+  $("pPrev").addEventListener("click", function () { detPage--; renderDetail(); });
+  $("pNext").addEventListener("click", function () { detPage++; renderDetail(); });
+
+  $("loading").hidden = true;
+  initCharts();
+  var h = location.hash.slice(1);
+  showTab(["summary", "detail"].indexOf(h) >= 0 ? h : "overview");
+  new MutationObserver(retheme).observe(root, { attributes: true, attributeFilter: ["data-theme"] });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", retheme);
+}
+
+function fillSel(id, list, keep) {
+  var s = $(id), v = keep ? s.value : "";
+  s.innerHTML = ""; s.add(new Option("All", ""));
+  list.forEach(function (x, i) { /* list of names (value = index) or [name, value] pairs */
+    if (typeof x === "string") s.add(new Option(x, i)); else s.add(new Option(x[0], x[1]));
+  });
+  s.value = v;
+  if (s.value !== v) s.value = "";
+}
+function fillCities() {
+  var p = $("fProvince").value, list = [];
+  DIMS.Cities.forEach(function (c, i) { if (p === "" || cityProv[i] === +p) list.push([c, i]); });
+  fillSel("fCity", list, true);
+}
+
+function filtered() {
+  var f = { p: $("fProvince").value, c: $("fCity").value, s: $("fSbu").value, d: $("fDiv").value, k: $("fCluster").value, t: $("fType").value };
+  var a = +$("fY0").value, b = +$("fY1").value; if (a > b) { var x = a; a = b; b = x; }
+  var p = f.p === "" ? -1 : +f.p, c = f.c === "" ? -1 : +f.c, s = f.s === "" ? -1 : +f.s,
+      d = f.d === "" ? -1 : +f.d, k = f.k === "" ? -1 : +f.k, t = f.t === "" ? -1 : +f.t;
+  return ROWS.filter(function (r) {
+    return (p < 0 || r[P] === p) && (c < 0 || r[C] === c) && (s < 0 || r[S] === s) && (d < 0 || r[D] === d) &&
+           (k < 0 || r[K] === k) && (t < 0 || r[T] === t) && r[Y] >= a && r[Y] <= b;
+  });
+}
+function sumBy(rows, idx, col) {
+  var m = {};
+  rows.forEach(function (r) { m[r[idx]] = (m[r[idx]] || 0) + r[col]; });
+  return Object.keys(m).map(function (k) { return [+k, m[k]]; });
+}
+
+var tab = "overview";
+function showTab(t) {
+  tab = t;
+  document.querySelectorAll(".tab").forEach(function (b) { b.setAttribute("aria-selected", b.dataset.tab === t); });
+  ["overview", "summary", "detail"].forEach(function (id) { $(id).hidden = id !== t; });
+  render();
+  if (t === "overview") {
+    Object.keys(charts).forEach(function (k) { charts[k].resize(); });
+    map.invalidateSize();
+    if (!mapFitted) { map.fitBounds([[-8.4, 98.3], [4.1, 117.8]], { padding: [10, 10] }); mapFitted = true; }
+  }
+}
+function render() {
+  var rows = filtered();
+  if (tab === "overview") renderOverview(rows);
+  else if (tab === "summary") renderSummary(rows);
+  else { detPage = 0; renderDetail(rows); }
+}
+
+/* ---------- overview ---------- */
+var charts = {}, map, bubbles, mapFitted = false;
+function initCharts() {
+  ["cProv", "cCity", "cSbu", "cType", "cCancel"].forEach(function (id) {
+    charts[id] = echarts.init($(id), null, { renderer: "svg" });
+  });
+  var rt; window.addEventListener("resize", function () {
+    Object.keys(charts).forEach(function (k) { charts[k].resize(); });
+    clearTimeout(rt); rt = setTimeout(function () { if (tab === "overview") render(); }, 200);
+  });
+  charts.cProv.on("click", function (e) { setFilter("fProvince", e.data.id); });
+  charts.cCity.on("click", function (e) { setFilter("fCity", e.data.id); });
+  charts.cSbu.on("click", function (e) { setFilter("fSbu", e.data.id); });
+  charts.cType.on("click", function (e) { setFilter("fType", e.data.id); });
+  map = L.map("map", { scrollWheelZoom: false, attributionControl: true });
+  bubbles = L.layerGroup().addTo(map);
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 12, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+  }).addTo(map);
+  /* re-measure chart labels once the web font is in */
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { render(); });
+}
+function setFilter(id, v) {
+  if (id === "fCity") { $("fProvince").value = cityProv[v]; fillCities(); }
+  $(id).value = String(v); if (id === "fProvince") fillCities();
+  render();
+}
+function retheme() { render(); }
+
+function axisBase() {
+  return { axisLine: { show: false }, axisTick: { show: false }, splitLine: { lineStyle: { color: css("--grid") } },
+           axisLabel: { color: css("--muted"), fontFamily: "Plus Jakarta Sans", fontSize: 11.5 } };
+}
+function tip() {
+  return { backgroundColor: css("--surface"), borderColor: css("--line"), textStyle: { color: css("--ink"), fontFamily: "Plus Jakarta Sans", fontSize: 13 },
+           extraCssText: "box-shadow:0 6px 20px rgba(0,0,0,.18);border-radius:10px" };
+}
+var mctx = document.createElement("canvas").getContext("2d");
+function textW(s) { mctx.font = '12px "Plus Jakarta Sans", system-ui, sans-serif'; return mctx.measureText(s).width; }
+function hbar(chart, pairs, names, opts) {
+  opts = opts || {};
+  pairs.sort(function (a, b) { return b[1] - a[1]; });
+  if (opts.top) pairs = pairs.slice(0, opts.top);
+  pairs.reverse();
+  var tot = opts.total || 0, ax = axisBase();
+  /* measure category labels ourselves: containLabel + truncate clips the start of long names */
+  var lw = Math.min(180, Math.ceil(1.12 * Math.max.apply(null, pairs.map(function (p) { return textW(names[p[0]]); }).concat([20]))) + 6);
+  chart.setOption({
+    animationDuration: 300,
+    grid: { left: lw + 14, right: opts.pct ? 52 : 56, top: 4, bottom: 26, containLabel: false },
+    tooltip: Object.assign(tip(), { trigger: "item", formatter: function (p) {
+      return "<b>" + p.name + "</b><br>" + money(p.value) + (tot ? " · " + (p.value / tot * 100).toFixed(1) + "%" : ""); } }),
+    /* bars carry their own value labels, so drop the axis numbers when the plot is too narrow to fit them */
+    xAxis: Object.assign({ type: "value", splitNumber: 4, axisLabel: Object.assign(ax.axisLabel, { show: chart.getWidth() - lw > 380, formatter: function (v) { return money(v).replace("Rp ", ""); } }) },
+                         { axisLine: ax.axisLine, axisTick: ax.axisTick, splitLine: ax.splitLine }),
+    yAxis: { type: "category", data: pairs.map(function (p) { return names[p[0]]; }), axisLine: { lineStyle: { color: css("--line") } }, axisTick: { show: false },
+             axisLabel: { color: css("--ink"), fontFamily: "Plus Jakarta Sans", fontSize: 12, width: lw, overflow: "truncate" } },
+    series: [{ type: "bar", barMaxWidth: 18, barCategoryGap: "35%", cursor: "pointer",
+      itemStyle: { color: css("--brand"), borderRadius: [0, 4, 4, 0] },
+      emphasis: { itemStyle: { color: css("--brand-ink") } },
+      label: { show: true, position: "right", color: css("--muted"), fontFamily: "Plus Jakarta Sans", fontSize: 11.5,
+               formatter: function (p) { return opts.pct && tot ? (p.value / tot * 100).toFixed(1) + "%" : money(p.value).replace("Rp ", ""); } },
+      data: pairs.map(function (p) { return { value: p[1], id: p[0], name: names[p[0]] }; }) }]
+  }, true);
+}
+function renderOverview(rows) {
+  var net = 0, inc = 0, units = 0, can = 0;
+  rows.forEach(function (r) { net += r[NX]; inc += r[NI]; units += r[U]; can += r[CA]; });
+  $("kNet").textContent = money(net); $("kInc").textContent = money(inc);
+  $("kUnits").textContent = int(units); $("kCancel").textContent = int(can);
+  $("kNetSub").textContent = "after cancellations · IDR";
+  $("kCancelSub").textContent = "cancelled SO lines, incl. addenda";
+
+  hbar(charts.cProv, sumBy(rows, P, NX), DIMS.Province);
+  hbar(charts.cCity, sumBy(rows, C, NX), DIMS.Cities, { top: 10 });
+  hbar(charts.cSbu, sumBy(rows, S, NX), DIMS.PillarDesc);
+  var tp = sumBy(rows, T, NX).filter(function (p) { return p[1] > 0; });
+  hbar(charts.cType, tp, DIMS.UnitTypeDesc, { pct: true, total: tp.reduce(function (a, p) { return a + p[1]; }, 0) });
+
+  /* cancellations: series per product type slot (top 4 fixed + Other) */
+  var slots = [0, 1, 2, 3, 4].map(function () { return MON.map(function () { return 0; }); });
+  rows.forEach(function (r) { if (r[CA]) slots[typeSlot[r[T]]][r[M] - 1] += r[CA]; });
+  var names = ["", "", "", "", "Other"];
+  Object.keys(typeSlot).forEach(function (ti) { if (typeSlot[ti] < 4) names[typeSlot[ti]] = DIMS.UnitTypeDesc[ti]; });
+  var cols = ["--s1", "--s2", "--s3", "--s4", "--s5"].map(css), ax = axisBase();
+  var series = slots.map(function (data, i) {
+    return { name: names[i], type: "line", data: data, smooth: false, symbol: "circle", symbolSize: 8, showSymbol: false,
+             lineStyle: { width: 2, color: cols[i] }, itemStyle: { color: cols[i], borderColor: css("--surface"), borderWidth: 2 },
+             emphasis: { focus: "series" } };
+  }).filter(function (s) { return s.data.some(function (v) { return v > 0; }); });
+  $("lCancel").innerHTML = series.map(function (s) {
+    return '<span><i style="background:' + s.lineStyle.color + '"></i>' + s.name + "</span>"; }).join("");
+  charts.cCancel.setOption({
+    animationDuration: 300, color: cols,
+    grid: { left: 8, right: 16, top: 14, bottom: 4, containLabel: true },
+    legend: { show: false },
+    tooltip: Object.assign(tip(), { trigger: "axis", axisPointer: { type: "line", lineStyle: { color: css("--muted"), width: 1 } } }),
+    xAxis: { type: "category", data: MON, boundaryGap: false, axisLine: { lineStyle: { color: css("--line") } }, axisTick: { show: false }, axisLabel: ax.axisLabel },
+    yAxis: Object.assign({ type: "value" }, ax),
+    series: series
+  }, true);
+
+  /* map bubbles */
+  bubbles.clearLayers();
+  var cp = sumBy(rows, C, NX).filter(function (p) { return p[1] > 0 && GEO[DIMS.Cities[p[0]]]; });
+  var mx = Math.max.apply(null, cp.map(function (p) { return p[1]; }).concat([1]));
+  var sel = $("fCity").value;
+  cp.sort(function (a, b) { return b[1] - a[1]; }).forEach(function (p) {
+    var name = DIMS.Cities[p[0]];
+    L.circleMarker(GEO[name], { radius: 4 + 22 * Math.sqrt(p[1] / mx), color: css("--surface"), weight: 2,
+      fillColor: css("--brand"), fillOpacity: sel === "" || +sel === p[0] ? .75 : .3 })
+      .bindTooltip("<b>" + name + "</b> · " + DIMS.Province[cityProv[p[0]]] + "<br>" + money(p[1]), { direction: "top" })
+      .on("click", function () { setFilter("fCity", p[0]); })
+      .addTo(bubbles);
+  });
+}
+
+/* ---------- summary (province → city pivot) ---------- */
+var openProv = {};
+function renderSummary(rows) {
+  var byP = {}, byC = {}, tot = [0, 0, 0, 0];
+  function add(o, k, r) { var a = o[k] || (o[k] = [0, 0, 0, 0]); a[0] += r[U]; a[1] += r[NX]; a[2] += r[NI]; a[3] += r[CA]; }
+  rows.forEach(function (r) { add(byP, r[P], r); add(byC, r[C], r); tot[0] += r[U]; tot[1] += r[NX]; tot[2] += r[NI]; tot[3] += r[CA]; });
+  var cells = function (a) { return '<td class="n">' + int(a[0]) + '</td><td class="n">' + money(a[1]) + '</td><td class="n">' + money(a[2]) + '</td><td class="n">' + int(a[3]) + "</td>"; };
+  var h = '<thead><tr><th>Province / City</th><th class="n">Net units</th><th class="n">Net sales excl. VAT</th><th class="n">Net sales incl. VAT</th><th class="n">Cancellations</th></tr></thead><tbody>';
+  Object.keys(byP).sort(function (a, b) { return byP[b][1] - byP[a][1]; }).forEach(function (p) {
+    var open = !!openProv[p];
+    h += '<tr class="prov' + (open ? " open" : "") + '" data-p="' + p + '" tabindex="0" aria-expanded="' + open + '"><td>' + DIMS.Province[p] + "</td>" + cells(byP[p]) + "</tr>";
+    if (open) Object.keys(byC).filter(function (c) { return cityProv[c] === +p; })
+      .sort(function (a, b) { return byC[b][1] - byC[a][1]; })
+      .forEach(function (c) { h += '<tr class="city"><td>' + DIMS.Cities[c] + "</td>" + cells(byC[c]) + "</tr>"; });
+  });
+  h += '<tr class="tot"><td>Total</td>' + cells(tot) + "</tr></tbody>";
+  var t = $("tSum"); t.innerHTML = h;
+  t.querySelectorAll("tr.prov").forEach(function (tr) {
+    var tog = function () { openProv[tr.dataset.p] = !openProv[tr.dataset.p]; renderSummary(filtered()); };
+    tr.addEventListener("click", tog);
+    tr.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tog(); } });
+  });
+}
+
+/* ---------- detail ---------- */
+var detPage = 0, PAGE = 25, detSort = { col: 7, dir: -1 };
+var DCOLS = [["Province", P, "Province"], ["City", C, "Cities"], ["Company", CO, "CompanyName"], ["SBU", S, "PillarDesc"],
+             ["Division", D, "DivisionDesc"], ["Cluster", K, "ClusterDesc"], ["Product type", T, "UnitTypeDesc"]];
+function renderDetail(rows) {
+  rows = rows || filtered();
+  var g = {};
+  rows.forEach(function (r) {
+    var key = r[P] + "|" + r[C] + "|" + r[CO] + "|" + r[S] + "|" + r[D] + "|" + r[K] + "|" + r[T];
+    var a = g[key] || (g[key] = [r[P], r[C], r[CO], r[S], r[D], r[K], r[T], 0, 0, 0, 0]);
+    a[7] += r[NX]; a[8] += r[NI]; a[9] += r[U]; a[10] += r[CA];
+  });
+  var list = Object.keys(g).map(function (k) {
+    var a = g[k];
+    return { v: a, t: DCOLS.map(function (c, i) { return DIMS[c[2]][a[i]]; }) };
+  });
+  var q = $("dSearch").value.trim().toLowerCase();
+  if (q) list = list.filter(function (o) { return o.t.join(" ").toLowerCase().indexOf(q) >= 0; });
+  var sc = detSort.col, dir = detSort.dir;
+  list.sort(function (a, b) { return sc < 7 ? dir * a.t[sc].localeCompare(b.t[sc]) : dir * (a.v[sc] - b.v[sc]); });
+  var pages = Math.max(1, Math.ceil(list.length / PAGE));
+  detPage = Math.min(Math.max(detPage, 0), pages - 1);
+  var arrow = function (i) { return i === sc ? (dir > 0 ? " ↑" : " ↓") : ""; };
+  var h = "<thead><tr>" + DCOLS.map(function (c, i) { return '<th class="s" data-c="' + i + '">' + c[0] + arrow(i) + "</th>"; }).join("") +
+    ["Net sales excl. VAT", "Net sales incl. VAT", "Net units", "Cancellations"].map(function (n, j) { return '<th class="s n" data-c="' + (7 + j) + '">' + n + arrow(7 + j) + "</th>"; }).join("") +
+    "</tr></thead><tbody>";
+  list.slice(detPage * PAGE, detPage * PAGE + PAGE).forEach(function (o) {
+    h += "<tr>" + o.t.map(function (x) { return "<td>" + x + "</td>"; }).join("") +
+      '<td class="n">' + money(o.v[7]) + '</td><td class="n">' + money(o.v[8]) + '</td><td class="n">' + int(o.v[9]) + '</td><td class="n">' + int(o.v[10]) + "</td></tr>";
+  });
+  if (!list.length) h += '<tr><td colspan="11" style="text-align:center;color:var(--muted);padding:30px">No rows match the filters</td></tr>';
+  var t = $("tDet"); t.innerHTML = h + "</tbody>";
+  t.querySelectorAll("th.s").forEach(function (th) {
+    th.addEventListener("click", function () {
+      var c = +th.dataset.c;
+      detSort = { col: c, dir: detSort.col === c ? -detSort.dir : (c < 7 ? 1 : -1) }; renderDetail();
+    });
+  });
+  $("dCount").textContent = int(list.length) + " rows";
+  $("pInfo").textContent = "Page " + (detPage + 1) + " of " + pages;
+  $("pPrev").disabled = detPage === 0; $("pNext").disabled = detPage >= pages - 1;
+}
+})();
+</script>
+</body>
+</html>
